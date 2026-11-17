@@ -1,0 +1,91 @@
+{
+ "name": "report_pan_v1.1",
+ "purpose": "Pan cancer extraction of H&E visible facts from TCGA pathology reports: a shared set of fields that exists in most organ systems, with verbatim quotes, for slide level typed questions. Never infer. Never pad.",
+ "specimen_rule": "If the report describes several specimens, use the primary tumour resection or biopsy that carries the invasive tumour (the specimen most likely sent to TCGA). Ignore lymph nodes, margins, contralateral or prophylactic specimens, and metastases unless they are the only tumour.",
+ "value_format": "every field is an object {\"value\": ..., \"quote\": ...}; the quote is a verbatim substring of the report text copied character for character (keep the report's line breaks, periods and typos inside the quote; do not normalise); when the report does not state the field, value = \"not reported\" and quote = \"\"; list fields use parallel lists for value and quote",
+ "fields": {
+  "histologic_type": {
+   "type": "free text",
+   "description": "the diagnosis line's histologic type of the primary tumour, copied in the report's own words, shortened to the type phrase (e.g. 'invasive ductal carcinoma', 'clear cell renal cell carcinoma', 'adenocarcinoma, acinar pattern', 'squamous cell carcinoma, keratinizing')"
+  },
+  "histologic_grade": {
+   "type": "categorical",
+   "values": "1 | 2 | 3 | 4 | not reported",
+   "description": "the primary tumour grade on the report's own system mapped to its number (Nottingham, Fuhrman / WHO-ISUP, Gleason grade group is NOT this field, FIGO, WHO CNS grade I to IV -> 1 to 4, 'well / moderately / poorly differentiated' -> 1 / 2 / 3 only when the report gives no number); ranges and hedges stay not reported; a grade stated for a limited focus, a possible progression, or a range does not override the grade given for the tumour as a whole; prostate: Gleason goes to gleason_score and histologic_grade stays not reported unless a separate grade is given"
+  },
+  "grading_system": {
+   "type": "free text",
+   "description": "the name of the grading system the report uses for histologic_grade, as written (e.g. 'Nottingham', 'Fuhrman', 'WHO/ISUP', 'nuclear grade', 'FIGO', 'WHO CNS'), or 'differentiation' when the report only says well / moderately / poorly differentiated or G1 / G2 / G3; not reported when histologic_grade is not reported"
+  },
+  "gleason_score": {
+   "type": "free text",
+   "description": "prostate only: the Gleason score as written (e.g. '3+4=7'), otherwise not reported"
+  },
+  "lymphovascular_invasion": {
+   "type": "categorical",
+   "values": "present | absent | not reported",
+   "description": "lymphovascular, lymphatic, vascular or angiolymphatic invasion of the primary tumour; UICC L0 V0 = absent, L1 or V1 = present; 'suspicious' = not reported; when one statement denies it and another in the same report describes invasion of a named vessel, use present with the vessel statement as the quote"
+  },
+  "perineural_invasion": {
+   "type": "categorical",
+   "values": "present | absent | not reported"
+  },
+  "necrosis": {
+   "type": "categorical",
+   "values": "present | absent | not reported",
+   "description": "tumour necrosis in the primary tumour as stated on H&E"
+  },
+  "necrosis_extent": {
+   "type": "categorical",
+   "values": "focal | extensive | not reported",
+   "description": "only when the report qualifies the extent"
+  },
+  "precursor_or_in_situ_component": {
+   "type": "categorical",
+   "values": "present | absent | not reported",
+   "description": "an in situ or precursor lesion of the SAME tumour and organ as the primary (DCIS, LCIS, CIS, adenoma from which the carcinoma arises, dysplasia, PanIN, PIN, AIS, VIN/CIN); an incidental lesion in another organ or another specimen goes to non_neoplastic_findings instead"
+  },
+  "precursor_type": {
+   "type": "free text",
+   "description": "the named precursor lesion when present (e.g. 'DCIS', 'high grade PIN', 'tubular adenoma'), otherwise not reported"
+  },
+  "lymphocytic_infiltrate": {
+   "type": "categorical",
+   "values": "none | mild | moderate | marked | not reported",
+   "description": "tumour infiltrating lymphocytes or inflammatory infiltrate as graded by the report ('brisk' = marked, 'non-brisk' = mild, 'sparse / scant' = mild, 'focal' = mild, 'prominent / dense / extensive' = marked); only statements about lymphocytes, TILs or inflammatory infiltrate; a desmoplastic or stromal reaction is not this field"
+  },
+  "mitotic_activity": {
+   "type": "categorical",
+   "values": "low | moderate | high | not reported",
+   "description": "mitotic activity as stated qualitatively, or mapped from a score when the report gives a Nottingham mitotic score (1 low, 2 moderate, 3 high); a raw count alone goes to mitoses_per_10hpf; 'mitotic activity not identified / no mitoses seen / rare mitoses' = low"
+  },
+  "mitoses_per_10hpf": {
+   "type": "free text",
+   "description": "the raw mitotic count as written (e.g. '12/10 HPF', '3 per 2 mm2'), otherwise not reported"
+  },
+  "tumor_cell_percentage": {
+   "type": "free text",
+   "description": "percentage of TUMOUR CELLS or tumour cellularity within the tumour tissue (TCGA biospecimen lines such as 'percent tumor cells: 70%'); NOT the fraction of the organ or specimen occupied by the tumour, not extent, not Gleason pattern percentages; otherwise not reported"
+  },
+  "multifocal": {
+   "type": "categorical",
+   "values": "yes | no | not reported",
+   "description": "yes only when the report explicitly states multifocal, multicentric, multiple separate foci or separate tumour nodules of the PRIMARY tumour; 'bilateral', 'diffuse growth', 'across the organ', 'extensive' or several satellite nodules described only grossly do NOT count; otherwise not reported"
+  },
+  "treatment_effect": {
+   "type": "categorical",
+   "values": "present | absent | not reported",
+   "description": "therapy related changes in the tumour"
+  },
+  "non_neoplastic_findings": {
+   "type": "list of short free text",
+   "description": "diagnoses in the non neoplastic tissue of the same specimen or incidental lesions of other organs in the same case (e.g. 'fibrocystic changes', 'colonic tubular adenoma', 'emphysema'), as {\"value\": [short texts], \"quote\": [one verbatim quote per item]}; empty lists when none"
+  }
+ },
+ "h_and_e_visible_claims": {
+  "count": "1 to 8",
+  "format": "[{\"claim\": short statement of one finding visible on one H&E slide of the primary tumour, \"polarity\": \"present\" | \"absent\"}]",
+  "rules": "finding phrases only (no negation words inside the claim; put the negation in polarity); exclude margins, lymph nodes, tumour size, stage, gross description, immunohistochemistry, molecular tests, clinical history; never pad a sparse report; no restatement of the same fact; the diagnosis name itself is not a claim (it is histologic_type); gross description (colour, cut surface, consistency, measurements) is not H&E evidence"
+ },
+ "output": "one JSON object per report: {\"participant\": ..., \"project\": ..., \"fields\": {every field above}, \"h_and_e_visible_claims\": [...]}"
+}

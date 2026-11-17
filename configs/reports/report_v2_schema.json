@@ -1,0 +1,29 @@
+{
+ "purpose": "Structured facts from a TCGA breast cancer pathology report for training an image model that sees ONE H&E slide. Report only what the report states; never infer. Every field is a JSON object {\"value\": <categorical value or 'not reported'>, \"quote\": <the shortest report phrase that supports it, or ''>}. Follow specimen_rule when several specimens are described.",
+ "fields": {
+  "histologic_type": "one of: ductal_nst, lobular, mixed_ductal_lobular, mucinous, metaplastic, medullary, papillary, tubular, apocrine, micropapillary, other, not reported",
+  "nottingham_total": "1 | 2 | 3 | not reported (the combined histologic grade)",
+  "tubule_score": "1 | 2 | 3 | not reported (glandular/tubule formation score)",
+  "pleomorphism_score": "1 | 2 | 3 | not reported (nuclear pleomorphism score)",
+  "mitotic_score": "1 | 2 | 3 | not reported (mitotic count score)",
+  "mitoses_per_10hpf": "integer or range as stated, else not reported",
+  "nuclear_grade": "1 | 2 | 3 | not reported (when given separately from the Nottingham score)",
+  "dcis_present": "yes | no | not reported",
+  "dcis_type": "comedo | cribriform | solid | micropapillary | papillary | mixed | other | not reported",
+  "dcis_grade": "low | intermediate | high | not reported",
+  "dcis_comedo_necrosis": "yes | no | not reported",
+  "dcis_extent": "focal | extensive (>=25% of tumour or stated extensive) | not reported",
+  "lcis_present": "yes | no | not reported",
+  "lvi": "present | absent | not reported",
+  "pni": "present | absent | not reported",
+  "necrosis": "present | absent | not reported (tumour necrosis in the invasive component)",
+  "calcifications": "present | absent | not reported",
+  "tils_description": "none | sparse | moderate | dense | not reported (stromal tumour infiltrating lymphocytes, as described)",
+  "focality": "unifocal | multifocal | not reported",
+  "non_neoplastic_findings": "list of short terms as stated (fibrocystic change, adenosis, usual ductal hyperplasia, atypical ductal hyperplasia, papilloma, fibroadenoma, radial scar, etc.) or []",
+  "treatment_effect": "present | absent | not reported",
+  "h_and_e_visible_claims": "1 to 8 short declarative statements taken from the diagnosis or microscopic description that a pathologist could verify on ONE H&E slide alone (morphology, grade components, in situ carcinoma, invasion, necrosis, inflammation, calcifications). Exclude margins, lymph node status, tumour size, multifocality or multicentricity, gross descriptions (circumscribed mass, cut surface), nipple or skin involvement, immunohistochemistry, molecular and clinical history. Never pad: a sparse report may have only 1 or 2 claims. Each as {\"claim\": str, \"polarity\": \"present\" | \"absent\"}."
+ },
+ "output": "one JSON object per report with keys participant, fields (object with every field above), h_and_e_visible_claims (list). Use exactly the categorical values listed. If a field is not stated, value = 'not reported' and quote = ''.",
+ "specimen_rule": "If the report describes more than one cancer bearing specimen (for example an excision and a later mastectomy), use the specimen the report identifies as the one sent to TCGA / procured for research; if none is identified, use the definitive resection with the main invasive tumour. Contralateral benign or prophylactic specimens are never used."
+}

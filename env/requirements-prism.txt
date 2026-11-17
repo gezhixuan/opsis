@@ -1,0 +1,17 @@
+# TITAN and PRISM2 (scripts 58, 83, 85, 88, 101): the PRISM2 remote code runs with transformers 4.48. Python 3.11, CUDA 12.6.
+torch==2.7.0
+torchvision==0.22.0
+timm==1.0.29
+transformers==4.48.3
+peft==0.20.0
+accelerate==1.15.0
+flash-attn==2.8.3.post1
+numpy==2.4.6
+pandas==2.3.3
+pyarrow==26.0.0
+scipy==1.17.1
+scikit-learn==1.9.1
+h5py==3.16.0
+pillow==12.3.0
+einops==0.8.2
+huggingface_hub==0.36.2

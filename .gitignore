@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+/data/
+/checkpoints/
+/runs/
+*.h5
+*.pt
+*.safetensors
+.env
+*api_key*
+/results/
