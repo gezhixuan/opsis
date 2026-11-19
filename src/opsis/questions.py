@@ -24,23 +24,23 @@ FAMILY = {"cell_super": "cell", "cell_main": "cell", "cell_is": "cell", "cell_ti
           "count_bin": "region", "present": "region", "cell_frac_bin": "region", "tissue_present": "region",
           "tissue_frac_bin": "region", "dominant_tissue": "region", "more_cells": "region",
           "compare_regions": "comp", "count_in_compartment_bin": "comp", "tils_location": "comp", "density_compare": "comp",
-          # slide level (TCGA-BRCA, scripts/50): report slots and molecular status of the patient, asked on the whole slide
+          # slide level (TCGA-BRCA, scripts/questions/50_build_slide_questions.py): report slots and molecular status of the patient, asked on the whole slide
           "histologic_type": "slide", "histologic_grade": "slide", "nuclear_grade": "slide", "in_situ_present": "slide",
           "lvi_present": "slide", "necrosis_present": "slide", "multifocal": "slide", "pni_present": "slide",
           "er_positive": "molecular", "pr_positive": "molecular", "her2_positive": "molecular", "pam50": "molecular",
           "tissue_is": "organ",
-          # slide level, report extraction v2 (scripts/52): Nottingham components, DCIS details, other findings, claims
+          # slide level, report extraction v2 (scripts/questions/52_build_slide_questions_v2.py): Nottingham components, DCIS details, other findings, claims
           "histologic_type_fine": "slide", "tubule_score": "slide", "pleomorphism_score": "slide", "mitotic_score": "slide",
           "dcis_type": "slide", "dcis_grade": "slide", "dcis_comedo_necrosis": "slide", "lcis_present": "slide", "calcifications": "slide",
           "tils_description": "slide", "claim_supported": "claim",
           # external slide level multiple choice (SlideBench-VQA TCGA, BRCA rows): free text question and options
           "slidebench_mcq": "external",
-          # pan cancer slide level (final version, scripts/66): shared report schema, tables, composite held out operators
+          # pan cancer slide level (final version, scripts/questions/66_build_slide_questions_pan.py): shared report schema, tables, composite held out operators
           "pan_grade": "slide", "pan_lvi": "slide", "pan_pni": "slide", "pan_necrosis": "slide", "pan_precursor": "slide", "pan_mitotic": "slide",
           "pan_multifocal": "slide", "pan_infiltrate": "slide", "cancer_type": "slide", "molecular_subtype": "molecular",
           "tumor_purity_bin": "molecular", "leukocyte_fraction_bin": "molecular",
           "grade_from_components": "composite", "high_grade_and_lvi": "composite", "necrosis_and_high_mitotic": "composite", "dcis_with_comedo": "composite", "precursor_type": "composite",
-          # final FOV extras (scripts/67)
+          # final FOV extras (scripts/questions/67_build_fov_extra.py)
           "stil_score_bin": "region", "mitotic_present": "region", "mitotic_count_bin": "region"}
 OPS = list(FAMILY)
 

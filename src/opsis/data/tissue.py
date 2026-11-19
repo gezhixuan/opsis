@@ -3,7 +3,7 @@ organisers at level 1 of the 40x pyramid, about 0.5 mpp). File name: <slide barc
 that 0.5 mpp frame, so level-0 coordinate = 2 * tiger coordinate (checked against the BCSS origins, e.g. 3401 -> 6798).
 
 TIGER codes: 0 outside the ROI, 1 invasive tumour, 2 tumour associated stroma, 3 in situ tumour, 4 healthy glands,
-5 necrosis not in situ, 6 inflamed stroma, 7 rest. The mapping to BCSS codes is checked by scripts/10_build_facts.py --check.
+5 necrosis not in situ, 6 inflamed stroma, 7 rest. The mapping to BCSS codes is checked by scripts/data/10_build_facts.py --check.
 """
 import os
 import re

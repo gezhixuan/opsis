@@ -21,7 +21,7 @@ distribution is the softmax over the candidate letters. Code: https://github.com
 
 NuCLS field questions (19 operators, `fields/nucls` of the question release), our patient split, 3 epochs, 16 questions per
 field, learning rate 1e-4, bf16. The paper reports three seeds; this is the seed with the lowest validation NLL
-(`seeds.json` lists all three). Prompt, canvases and scoring are in `scripts/40_train_vlm.py` of the code repository.
+(`seeds.json` lists all three). Prompt, canvases and scoring are in `scripts/opsis_v/40_train_vlm.py` of the code repository.
 
 ## Use
 
@@ -33,7 +33,7 @@ model = PeftModel.from_pretrained(base, "gezx1004/opsis-v")
 processor = AutoProcessor.from_pretrained("Qwen/Qwen3-VL-8B-Instruct")
 ```
 
-Evaluation and shared prefix inference: `python scripts/40_train_vlm.py --eval-only` and `scripts/41_vlm_shared_prefix.py`.
+Evaluation and shared prefix inference: `python scripts/opsis_v/40_train_vlm.py --eval-only` and `scripts/opsis_v/41_vlm_shared_prefix.py`.
 
 ## Limits
 

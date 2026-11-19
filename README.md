@@ -35,7 +35,7 @@ models (transformers 5), and one for TITAN and PRISM2 (the PRISM2 remote code ru
 | variable | content |
 |---|---|
 | `OPSIS_DATA` | `raw/` (NuCLS, BCSS, PanNuke), `derived/` (facts and question sets), `features/` (Virchow2 tokens), `runs/` (checkpoints, predictions) |
-| `OPSIS_WSI` | TCGA diagnostic slides, downloaded by `scripts/104` and `scripts/105` from the GDC |
+| `OPSIS_WSI` | TCGA diagnostic slides, downloaded by `scripts/data/104_tcga_wsi_manifest.py` and `scripts/data/105_tcga_wsi_download.py` from the GDC |
 | `OPSIS_TCGA` | TRIDENT tile features (`gigapath_h5/<project>_trident_virchow2/h5_files/<slide>.h5`), `reports/TCGA_Reports.csv`, the clinical tables |
 | `OPSIS_ENCODERS` | `Virchow2/` (gated, `paige-ai/Virchow2` on Hugging Face) |
 | `OPSIS_MODELS` | Qwen3-VL-8B-Instruct, Patho-R1-7B, TITAN, PRISM2, CellViT-plus-plus checkpoints |
@@ -55,28 +55,27 @@ huggingface-cli download gezx1004/opsis-questions --repo-type dataset --local-di
 python release/install_questions.py opsis-questions      # into $OPSIS_DATA/derived with the names the code reads
 ```
 
-The install also copies the organiser episodes of the paper into `results/organiser/`, so the organiser tables of `82` and `88f`
-are recomputed from them without running a frontier model.
+The install also copies the organiser episodes of the paper into `results/organiser/`, so the organiser tables (`collect.py organiser`,
+`collect.py ways_to_read`) are recomputed from them without running a frontier model.
 
 `release/build_release.py` is the script that assembled both Hugging Face releases from our data root.
 
 ## Pipeline
 
-Scripts are numbered in the order they run. Long jobs have a SLURM wrapper in `scripts/slurm/` that takes its arguments
-through `ARGS` (`sbatch --export=ALL,ARGS="..." scripts/slurm/20_train.sbatch`, submitted from the repository root).
+`scripts/` has one folder per stage. Within a folder the number gives the order in which the scripts ran. A long job has its SLURM
+wrapper next to it, which takes the arguments through `ARGS` and is submitted from the repository root
+(`sbatch --export=ALL,ARGS="--name final_fov_s0 ..." scripts/opsis_s/20_train.sbatch`).
 
-| stage | scripts |
+| folder | content |
 |---|---|
-| data | `01` BCSS masks, `10` facts (nuclei, regions, tissue) from NuCLS and BCSS, `12` context canvases from the slides, `104`/`105` TCGA slides from the GDC |
-| questions | `11` NuCLS questions and patient split, `67` mitotic and sTIL operators (`questions_final`), `80_pannuke_build` PanNuke, `50`/`52` breast slide questions, `54_extract_openai` + `54_run_pan_bulk.sh` + `55_validate_pan` report field extraction with verbatim quotes, `53` validation of the breast extraction, `66` pan cancer slide questions and split, `68` audit agreement |
-| features | `13` Virchow2 tokens of the field and context canvases, `81_pannuke_tokens`, `70` SapBERT operator embeddings (one ablation) |
-| Opsis-S | `20` field decoder, `51` slide decoder, `69` per tile heads (noisy-OR, log mean exp, gated attention), `21_train_tuned_state` the unfrozen encoder ablation |
-| Opsis-V | `40` LoRA training and evaluation (also the untrained Qwen3-VL-8B and Patho-R1-7B with `--eval-only`), `41_vlm_shared_prefix` shared prefix timing, `41_train_vlm_state` Opsis-V reading the Virchow2 state |
-| organiser | `80_mcp_server` the tool server (`src/opsis/tools.py`), `81_organiser_eval` one episode per question (OpenAI API, Codex CLI or Claude Code CLI), `81b` the pan cancer test split in shards, `81d` the rules condition, `106` the reading conditions |
-| comparables | `57` ABMIL and CLAM-SB (`slurm/57b_abmil.sbatch` over many tasks), `58` and `83` PRISM2, `84` and `88` TITAN, `85` + `87` PRISM2 reports, `59` CellViT++, `100` vision language models looking at slides and fields, `101` TITAN and PRISM2 on CAMELYON16, `102` Virchow2 linear probes |
-| transfer | `71` tile maps against BCSS necrosis, `89`, `90`, `91` CAMELYON16 |
-| cost | `92` encoder timing, `111` slide question timing |
-| collect | `60`, `65`, `72`, `74`, `75`, `82`, `86`, `88b` to `88f` write the result tables to `results/collected/` |
+| `data` | BCSS masks (`01`), facts of the NuCLS and BCSS fields (`10`), context canvases (`12`), Virchow2 tokens of fields and canvases (`13`, `81` for PanNuke), operator text embeddings for one ablation (`70`), TCGA slides from the GDC (`104`, `105`) |
+| `questions` | NuCLS field questions and patient split (`11`, `67`), PanNuke (`80`), breast slide questions (`50`, `52`, `53`), report field extraction with verbatim quotes (`54`, `55`), pan cancer slide questions and split (`66`), audit agreement (`68`) |
+| `opsis_s` | field decoder (`20`), unfrozen encoder ablation (`21`), slide decoder (`51`), per tile heads (`69`), encoder and slide question timing (`92`, `111`) |
+| `opsis_v` | LoRA training and evaluation (`40`, also the untrained Qwen3-VL-8B and Patho-R1-7B with `--eval-only`), Opsis-V reading the Virchow2 state (`41_train_vlm_state`), shared prefix timing (`41_vlm_shared_prefix`) |
+| `organiser` | MCP tool server (`80`, tools in `src/opsis/tools.py`), one episode per question through the OpenAI API, Codex CLI or Claude Code CLI (`81`, `81b` for the pan cancer test split in shards), rules condition (`81d`), reading conditions (`106`) |
+| `baselines` | ABMIL and CLAM-SB (`57`, `57b_abmil.sbatch` over many tasks), PRISM2 (`58`, `83`, `85`, `87`), TITAN (`84`, `88`), CellViT++ (`59`), vision language models looking at slides and fields (`100`), TITAN and PRISM2 on CAMELYON16 (`101`), Virchow2 linear probes (`102`) |
+| `transfer` | tile maps against BCSS necrosis (`71`), CAMELYON16 (`89`, `90`, `91`) |
+| `collect` | `collect.py <table>` writes the result tables to `results/collected/` (`python scripts/collect/collect.py` lists them) |
 
 Training and evaluation write checkpoints and predictions to `$OPSIS_DATA/runs/<run>/` and a copy of the metrics to
 `results/runs/<run>/`, which the collectors read.

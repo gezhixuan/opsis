@@ -15,7 +15,7 @@ from opsis.data import nucls, tissue
 
 TISSUE_MIN_COVER = 0.8
 REGIONS = ["whole", "left", "right", "top", "bottom", "q00", "q01", "q10", "q11"]
-CTX_MPP = 1.0            # context window: CTX_PX pixels at CTX_MPP um/px, centred on the FOV (scripts/12_build_contexts.py uses the same)
+CTX_MPP = 1.0            # context window: CTX_PX pixels at CTX_MPP um/px, centred on the FOV (scripts/data/12_build_contexts.py uses the same)
 CTX_PX = 448
 
 
