@@ -26,7 +26,8 @@ ap.add_argument("--qset", required=True, choices=["pan", "brca", "camelyon", "bc
 ap.add_argument("--n-tiles", type=int, default=6); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--shard", default=None); ap.add_argument("--limit", type=int, default=None); ap.add_argument("--resume", action="store_true")
 ap.add_argument("--attn", default="flash_attention_2"); ap.add_argument("--key-file", default=None, help="file holding the API key (default: $OPENAI_API_KEY, or $ANTHROPIC_API_KEY for the anthropic backend)"); ap.add_argument("--base", default="https://api.openai.com/v1"); ap.add_argument("--reasoning", default="low")
 ap.add_argument("--blank-image", action="store_true", help="control: every image replaced by a uniform grey image of the same size, captions unchanged (language prior, as scripts/opsis_v/40_train_vlm.py --blank-image)"); ap.add_argument("--bcss-run", default="final_tile_noisyor_s0"); ap.add_argument("--frac", type=float, default=0.5, help="bcss: a tile is necrotic when at least this fraction of its mask is necrosis or debris")
-a = ap.parse_args(); OUT = f"{paths.ROOT}/results/organiser"; os.makedirs(OUT, exist_ok=True); LOG = f"{OUT}/{a.name}.jsonl"; rng = np.random.default_rng(a.seed)
+ap.add_argument("--only-ops", default=None, help="comma list: answer only these operators; the questions of the other operators still draw their tiles, so the images equal those of a full run of the same shard")
+a = ap.parse_args(); a.only_ops = set(a.only_ops.split(",")) if a.only_ops else None; OUT = f"{paths.ROOT}/results/organiser"; os.makedirs(OUT, exist_ok=True); LOG = f"{OUT}/{a.name}.jsonl"; rng = np.random.default_rng(a.seed)
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def LAB(i): return LETTERS[i] if i < 26 else LETTERS[i // 26 - 1] + LETTERS[i % 26]
 MAIN = {"pan": ["cancer_type", "pan_necrosis", "pan_lvi", "pan_pni", "pan_mitotic", "tumor_purity_bin", "high_grade_and_lvi", "necrosis_and_high_mitotic", "grade_from_components", "precursor_type", "dcis_with_comedo"],
@@ -35,10 +36,13 @@ MAIN = {"pan": ["cancer_type", "pan_necrosis", "pan_lvi", "pan_pni", "pan_mitoti
 OPS = MAIN[a.qset] if a.ops == "main" else None if a.ops == "all" else a.ops.split(",")
 CAM = paths.CAMELYON
 # ---------- tasks: (unit, question dict, image spec) ----------
+_COORDS = {}   # the coordinates of the last slide read
 def tissue_tiles_h5(slide, n):
     import h5py
-    _, S = T._registry()
-    with h5py.File(S.loc[slide, "h5_path"], "r") as h: C0 = h["coords_level0"][:]; ps = float(h.attrs.get("patch_size_level0", 512))
+    if slide not in _COORDS:
+        _, S = T._registry()
+        with h5py.File(S.loc[slide, "h5_path"], "r") as h: _COORDS.clear(); _COORDS[slide] = (h["coords_level0"][:], float(h.attrs.get("patch_size_level0", 512)))
+    C0, ps = _COORDS[slide]
     idx = rng.choice(len(C0), min(n, len(C0)), replace=False); return [(int(C0[i, 0] + ps / 2), int(C0[i, 1] + ps / 2)) for i in idx]
 def q_of(r): return dict(qid=r.qid, operator=r.op, question=r.text, candidates=json.loads(r.candidates), answer=int(r.answer))
 tasks = []
@@ -125,10 +129,14 @@ if a.backend == "local":
         text = proc.apply_chat_template([{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}], tokenize=False, add_generation_prompt=True)
         enc = proc(text=[text], images=[im for _, im in ims], return_tensors="pt"); enc = {k: v.to(dev) for k, v in enc.items()}
         with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16): lg = model(**enc, logits_to_keep=1).logits[0, -1].float()
-        if K <= 26: cl = lg[LID[:K]]
-        else: cl = torch.stack([lg[LID[i]] if i < 26 else lg[LID[i // 26 - 1]] for i in range(K)])   # two letter labels: scored by their first letter (cancer type only)
+        if K <= 26: cl = lg[LID[:K]]; extra = {}
+        else:   # two letter labels (cancer type has 32 candidates): AA to AF are single tokens in the Qwen tokenizers, each label is scored by its own token
+            ids = [tok.encode(LAB(i), add_special_tokens=False) for i in range(K)]; assert all(len(x) == 1 for x in ids), "a label is not one token"
+            cl = lg[[x[0] for x in ids]]
+            first = torch.stack([lg[LID[i]] if i < 26 else lg[LID[i // 26 - 1]] for i in range(K)])   # the scoring of the first run (by the first letter), kept to check the replay
+            extra = dict(probs_first_letter=[round(float(x), 5) for x in torch.softmax(first, -1).cpu().numpy()])
         p = torch.softmax(cl, -1).cpu().numpy(); pred = int(p.argmax())
-        return dict(pred=pred, confidence=float(p[pred]), probs=[round(float(x), 5) for x in p], usage=dict(prompt=int(enc["input_ids"].shape[1]), completion=0), text="")
+        return dict(pred=pred, confidence=float(p[pred]), probs=[round(float(x), 5) for x in p], usage=dict(prompt=int(enc["input_ids"].shape[1]), completion=0), text="", **extra)
 def parse_reply(text, labs, K):
     """the JSON reply of an API model -> (pred, confidence, probs); falls back to the first option letter in the text"""
     ans = None; conf = None
@@ -187,7 +195,9 @@ elif a.backend == "api":
 t00 = time.time(); n_done = 0
 with open(LOG, "a") as f:
     for i, (unit, q, spec) in enumerate(tasks):
-        if q["qid"] in done: continue
+        if (a.only_ops and q["operator"] not in a.only_ops) or q["qid"] in done:
+            if a.only_ops and spec == "slide": tissue_tiles_h5(unit, a.n_tiles)   # replay: the draws of a full run of this shard
+            continue
         t0 = time.time()
         try: r = answer(unit, q, spec)
         except Exception as e:

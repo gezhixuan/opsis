@@ -9,8 +9,8 @@ any number of questions are answered from it in one pass.
 
 - **Opsis-S** is a question decoder of 10 M parameters on frozen Virchow2 tokens of a field with its context canvas, or on 4,096
   sampled 20x tile vectors of a slide, with per tile heads for findings that live in a few tiles.
-- **Opsis-V** is the same interface inside Qwen3-VL-8B (LoRA), which reads the field and its context as pixels with the canvases
-  as a shared prefix.
+- **Opsis-V** is the same interface inside Qwen3-VL-8B (LoRA), which reads the field and its context as pixels with the two
+  images as a shared prefix.
 - **The organiser** is a frontier language model that answers slide questions, including composite questions Opsis was never
   trained on, by calling Opsis tools (`slide_info`, `ask_slide`, `tile_evidence`, `ask_region`) through an MCP server.
 
